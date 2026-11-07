@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banana Plantation Manager – Systems Hard Mode</title>
+  <style>
+    :root {
+      --bg: #0a100c;
+      --card: #132019;
+      --accent: #f4c430;
+      --danger: #e74c3c;
+      --good: #2ecc71;
+      --warn: #f39c12;
+      --text: #e4efe6;
+      --muted: #7e9a82;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 16px;
+      line-height: 1.45;
+    }
+    .container { max-width: 820px; width: 100%; }
+    header { text-align: center; margin-bottom: 14px; }
+    h1 { font-size: 1.6rem; color: var(--accent); }
+    .subtitle { color: var(--muted); font-size: 0.88rem; }
+
+    .goal-box, .upgrade-panel, .card {
+      background: var(--card);
+      border: 1px solid #22352a;
+      border-radius: 11px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+    }
+    .goal-box { font-size: 0.88rem; }
+    .goal-box strong { color: var(--accent); }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+      gap: 7px;
+      margin-bottom: 12px;
+    }
+    .stat {
+      background: #15241c;
+      border-radius: 8px;
+      padding: 9px 5px;
+      text-align: center;
+      border: 1px solid #24352b;
+    }
+    .stat-label { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; }
+    .stat-value { font-size: 1.2rem; font-weight: 700; margin-top: 2px; }
+    .stat.danger .stat-value { color: var(--danger); }
+    .stat.good .stat-value { color: var(--good); }
+    .stat.warn .stat-value { color: var(--warn); }
+
+    .season-title { font-size: 1.1rem; color: var(--accent); margin-bottom: 8px; }
+    .story { color: #c0d3c2; font-size: 0.93rem; margin-bottom: 12px; }
+
+    .event-box {
+      background: #1a2c22;
+      border-left: 4px solid var(--accent);
+      padding: 9px 12px;
+      margin: 10px 0;
+      border-radius: 0 7px 7px 0;
+      font-size: 0.88rem;
+    }
+    .event-box.bad { border-left-color: var(--danger); }
+    .event-box.good { border-left-color: var(--good); }
+    .event-box.punish { border-left-color: #c0392b; background: #2a1a1a; }
+
+    .choices { display: flex; flex-direction: column; gap: 7px; margin-bottom: 10px; }
+    button.choice, button.upgrade-btn, button.action-btn {
+      background: #1a2b22;
+      color: var(--text);
+      border: 1px solid #2f4638;
+      border-radius: 8px;
+      padding: 11px 13px;
+      text-align: left;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    button.choice:hover, button.upgrade-btn:hover, button.action-btn:hover {
+      background: #24382d;
+      border-color: var(--accent);
+    }
+    button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .upgrade-panel h3 { color: var(--accent); font-size: 1rem; margin-bottom: 8px; }
+    .upgrade-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid #24352b;
+      font-size: 0.85rem;
+    }
+    .upgrade-item:last-child { border-bottom: none; }
+    .upgrade-desc { color: var(--muted); font-size: 0.8rem; }
+
+    .log {
+      max-height: 140px;
+      overflow-y: auto;
+      font-size: 0.8rem;
+      color: var(--muted);
+      border-top: 1px solid #24352b;
+      padding-top: 8px;
+      margin-top: 8px;
+    }
+    .log p { margin-bottom: 3px; }
+
+    .hidden { display: none; }
+    .intro-box { text-align: center; }
+    .intro-box p { margin-bottom: 10px; color: #c0d3c2; }
+    .start-btn {
+      background: var(--accent);
+      color: #111;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      cursor: pointer;
+      margin-top: 6px;
+    }
+    .game-over { text-align: center; padding: 24px 14px; }
+    .restart {
+      background: var(--accent);
+      color: #111;
+      border: none;
+      padding: 11px 24px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+    footer { text-align: center; margin-top: 18px; font-size: 0.75rem; color: var(--muted); }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Banana Plantation Manager</h1>
+      <p class="subtitle">Upgrades • Punishments • Systems Difficulty</p>
+    </header>
+
+    <div id="intro" class="card intro-box">
+      <p><strong>Goal:</strong> Become a <span style="color:var(--accent)">Certified Ethical Plantation</span></p>
+      <p style="font-size:0.9rem">Reach Season 12+ with:<br>
+        Child Labor ≤ 15 &nbsp;•&nbsp; Worker Health ≥ 75 &nbsp;•&nbsp; Environment ≥ 70<br>
+        Reputation ≥ 80 &nbsp;•&nbsp; Fairtrade Certified</p>
+      <p style="font-size:0.85rem;color:var(--muted)">
+        You must buy upgrades, survive punishments, and fight constant decay. Pure survival is not enough.
+      </p>
+      <button class="start-btn" onclick="startGame()">Start Operation</button>
+    </div>
+
+    <div id="game" class="hidden">
+      <div class="goal-box" id="goalBox"></div>
+      <div class="stats" id="stats"></div>
+
+      <div class="card">
+        <div class="season-title" id="seasonTitle">Season 1</div>
+        <div class="story" id="story"></div>
+
+        <div class="row">
+          <button class="action-btn" onclick="toggleUpgrades()">Buy Upgrades</button>
+          <button class="action-btn" id="endSeasonBtn" onclick="endSeason()">Confirm Season Choice</button>
+        </div>
+
+        <div id="upgradePanel" class="upgrade-panel hidden">
+          <h3>Available Upgrades</h3>
+          <div id="upgradeList"></div>
+        </div>
+
+        <div class="choices" id="choices"></div>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+
+    <div id="gameOver" class="card game-over hidden">
+      <h2 id="overTitle">Failed</h2>
+      <p id="overReason"></p>
+      <p id="overSeasons" style="margin-top:8px;color:var(--muted)"></p>
+      <button class="restart" onclick="location.reload()">Try Again</button>
+    </div>
+
+    <footer>Hard systems mode • Upgrades & punishments required</footer>
+  </div>
+
+  <script>
+    const state = {
+      money: 38000,
+      reputation: 40,
+      environment: 48,
+      childLabor: 52,
+      workersHealth: 45,
+      season: 0,
+      fairtrade: false,
+      blackMarks: 0,
+      productionPenalty: 0,   // seasons of reduced income
+      strike: 0,              // seasons of strike
+      log: [],
+      upgrades: {
+        gear: false,          // protective gear
+        monitoring: false,    // child labor monitoring
+        soil: false,          // soil recovery program
+        clinic: false,        // medical clinic
+        housing: false,       // better housing
+        buffers: false,       // advanced waterway buffers
+        training: false       // worker training & rights
+      }
+    };
+
+    let selectedChoice = null;
+
+    function clamp(v) { return Math.max(0, Math.min(100, Math.round(v))); }
+    function rand(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+    function chance(p) { return Math.random() * 100 < p; }
+
+    function addLog(msg) {
+      state.log.unshift(msg);
+      if (state.log.length > 9) state.log.pop();
+      renderLog();
+    }
+
+    function renderGoal() {
+      const s = state;
+      const met = s.season >= 12 && s.childLabor <= 15 && s.workersHealth >= 75 &&
+                  s.environment >= 70 && s.reputation >= 80 && s.fairtrade;
+      document.getElementById('goalBox').innerHTML = `
+        <strong>Goal:</strong> Certified Ethical (Season 12+)<br>
+        CL ≤15 (${s.childLabor}) • Health ≥75 (${s.workersHealth}) • Env ≥70 (${s.environment}) • 
+        Rep ≥80 (${s.reputation}) • Fairtrade: ${s.fairtrade ? "YES" : "NO"}
+        ${met ? "<br><span style='color:var(--good)'>ALL CONDITIONS MET</span>" : ""}
+        ${s.blackMarks > 0 ? `<br><span style="color:var(--danger)">Black Marks: ${s.blackMarks}</span>` : ""}
+        ${s.productionPenalty > 0 ? `<br><span style="color:var(--warn)">Production Penalty: ${s.productionPenalty} seasons</span>` : ""}
+        ${s.strike > 0 ? `<br><span style="color:var(--danger)">Worker Strike: ${s.strike} seasons</span>` : ""}
+      `;
+    }
+
+    function renderStats() {
+      const s = state;
+      document.getElementById('stats').innerHTML = `
+        <div class="stat ${s.money < 12000 ? 'danger' : ''}">
+          <div class="stat-label">Money</div>
+          <div class="stat-value">$${s.money.toLocaleString()}</div>
+        </div>
+        <div class="stat ${s.reputation < 25 ? 'danger' : s.reputation >= 80 ? 'good' : ''}">
+          <div class="stat-label">Reputation</div>
+          <div class="stat-value">${s.reputation}</div>
+        </div>
+        <div class="stat ${s.environment < 25 ? 'danger' : s.environment >= 70 ? 'good' : ''}">
+          <div class="stat-label">Environment</div>
+          <div class="stat-value">${s.environment}</div>
+        </div>
+        <div class="stat ${s.childLabor > 65 ? 'danger' : s.childLabor <= 15 ? 'good' : 'warn'}">
+          <div class="stat-label">Child Labor</div>
+          <div class="stat-value">${s.childLabor}</div>
+        </div>
+        <div class="stat ${s.workersHealth < 25 ? 'danger' : s.workersHealth >= 75 ? 'good' : ''}">
+          <div class="stat-label">Worker Health</div>
+          <div class="stat-value">${s.workersHealth}</div>
+        </div>
+      `;
+    }
+
+    function renderLog() {
+      document.getElementById('log').innerHTML = state.log.map(m => `<p>• ${m}</p>`).join('');
+    }
+
+    function renderUpgrades() {
+      const list = document.getElementById('upgradeList');
+      const ups = [
+        { key: 'gear', name: 'Protective Gear & Safety Equipment', cost: 12000, desc: 'Reduces worker health damage from chemicals and long hours' },
+        { key: 'monitoring', name: 'Child Labor Monitoring & School Support', cost: 15000, desc: 'Strongly reduces child labor growth and helps lower it' },
+        { key: 'soil', name: 'Soil Recovery & Reduced Intensity Program', cost: 14000, desc: 'Slows environment decay and improves recovery actions' },
+        { key: 'clinic', name: 'On-site Medical Clinic', cost: 16000, desc: 'Improves worker health recovery and reduces illness events' },
+        { key: 'housing', name: 'Improved Worker Housing', cost: 13000, desc: 'Boosts health and reputation, lowers strike chance' },
+        { key: 'buffers', name: 'Advanced Waterway Buffers & Reforestation', cost: 15000, desc: 'Major environment protection and slow recovery' },
+        { key: 'training', name: 'Worker Rights Training & Fair Contracts', cost: 11000, desc: 'Improves reputation and reduces exploitation risk' }
+      ];
+
+      list.innerHTML = ups.map(u => {
+        if (state.upgrades[u.key]) {
+          return `<div class="upgrade-item"><div><strong>${u.name}</strong><div class="upgrade-desc">Owned</div></div><span style="color:var(--good)">✓</span></div>`;
+        }
+        return `<div class="upgrade-item">
+          <div>
+            <strong>${u.name}</strong>
+            <div class="upgrade-desc">${u.desc}</div>
+          </div>
+          <button class="upgrade-btn" onclick="buyUpgrade('${u.key}', ${u.cost})" ${state.money < u.cost ? 'disabled' : ''}>
+            $${u.cost.toLocaleString()}
+          </button>
+        </div>`;
+      }).join('');
+    }
+
+    function buyUpgrade(key, cost) {
+      if (state.money < cost || state.upgrades[key]) return;
+      state.money -= cost;
+      state.upgrades[key] = true;
+      addLog(`Purchased upgrade: ${key}`);
+      renderStats();
+      renderUpgrades();
+      renderGoal();
+    }
+
+    function toggleUpgrades() {
+      const panel = document.getElementById('upgradePanel');
+      panel.classList.toggle('hidden');
+      if (!panel.classList.contains('hidden')) renderUpgrades();
+    }
+
+    // ---------- PUNISHMENTS ----------
+    function applyPunishments() {
+      let punished = false;
+
+      // High child labor
+      if (state.childLabor >= 75 && chance(55 + state.blackMarks * 8)) {
+        const fine = rand(8000, 18000);
+        state.money -= fine;
+        state.reputation -= rand(8, 16);
+        state.blackMarks++;
+        state.productionPenalty = Math.max(state.productionPenalty, rand(1, 2));
+        addLog(`PUNISHMENT: Child labor crackdown. Fine $${fine.toLocaleString()} + black mark.`);
+        punished = true;
+      }
+
+      // Critical worker health
+      if (state.workersHealth <= 30 && chance(50)) {
+        state.strike = Math.max(state.strike, rand(1, 3));
+        state.reputation -= rand(6, 12);
+        addLog("PUNISHMENT: Workers go on strike over health and safety conditions.");
+        punished = true;
+      }
+
+      // Environmental disaster threshold
+      if (state.environment <= 25 && chance(45)) {
+        const fine = rand(7000, 16000);
+        state.money -= fine;
+        state.reputation -= rand(10, 18);
+        state.blackMarks++;
+        addLog(`PUNISHMENT: Environmental violation fine $${fine.toLocaleString()}.`);
+        punished = true;
+      }
+
+      // Black marks make everything worse
+      if (state.blackMarks >= 3 && chance(40)) {
+        state.reputation -= rand(8, 15);
+        state.productionPenalty = Math.max(state.productionPenalty, 2);
+        addLog("PUNISHMENT: Accumulated black marks trigger buyer boycott.");
+        punished = true;
+      }
+
+      // Low reputation spiral
+      if (state.reputation <= 20 && chance(35)) {
+        state.money -= rand(5000, 12000);
+        addLog("PUNISHMENT: Reputation so low that contracts are cancelled.");
+        punished = true;
+      }
+
+      return punished;
+    }
+
+    // ---------- EVENTS ----------
+    const events = [
+      { text: "Chemical contamination of local water sources makes national news.", type: "bad",
+        fn: () => { state.environment -= rand(12, 22); state.reputation -= rand(10, 20); state.money -= rand(5000, 13000); } },
+      { text: "Undercover footage of children working with machetes goes viral.", type: "bad",
+        fn: () => { state.childLabor += rand(10, 20); state.reputation -= rand(14, 26); state.blackMarks++; } },
+      { text: "Multiple workers hospitalized from chronic pesticide exposure.", type: "bad",
+        fn: () => { state.workersHealth -= rand(12, 22); state.money -= rand(6000, 14000); } },
+      { text: "Severe drought hits degraded soils hardest.", type: "bad",
+        fn: () => { state.money -= rand(9000, 20000); state.environment -= rand(6, 14); } },
+      { text: "International labor audit fails spectacularly.", type: "bad",
+        fn: () => { state.money -= rand(8000, 17000); state.reputation -= rand(9, 17); state.childLabor += rand(5, 12); } },
+      { text: "Global banana prices crash.", type: "bad",
+        fn: () => { state.money -= rand(7000, 16000); } },
+      { text: "Major buyer drops all non-certified suppliers.", type: "bad",
+        fn: () => { state.reputation -= rand(8, 16); state.money -= rand(4000, 11000); } },
+      { text: "Flooding + poor land management = major crop and chemical loss.", type: "bad",
+        fn: () => { state.environment -= rand(10, 18); state.money -= rand(6000, 14000); } },
+      { text: "Fairtrade premium buyer actively seeking suppliers.", type: "good",
+        fn: () => { const b = state.fairtrade ? rand(12000, 24000) : rand(4000, 9000); state.money += b; state.reputation += rand(4, 10); } },
+      { text: "Positive report on farms investing in worker health and land recovery.", type: "good",
+        fn: () => { if (state.upgrades.clinic || state.upgrades.soil) { state.reputation += rand(7, 14); state.environment += rand(3, 7); } } }
+    ];
+
+    // ---------- CHOICES ----------
+    const choiceDefs = [
+      { id: "extract", text: "Maximum extraction (heavy chemicals, long hours, cheapest labor including children)",
+        fn: () => {
+          let gain = rand(14000, 28000);
+          if (state.productionPenalty > 0) gain = Math.floor(gain * 0.55);
+          if (state.strike > 0) gain = Math.floor(gain * 0.4);
+          state.money += gain;
+          state.childLabor += rand(12, 24);
+          state.workersHealth -= state.upgrades.gear ? rand(7, 14) : rand(13, 24);
+          state.environment -= state.upgrades.soil ? rand(7, 14) : rand(12, 22);
+          state.reputation -= rand(7, 16);
+          addLog(`Extraction season: +$${gain.toLocaleString()}`);
+        }
+      },
+      { id: "reduceChem", text: "Cut chemical use hard and accept lower yields",
+        fn: () => {
+          let gain = rand(3000, 10000);
+          if (state.productionPenalty > 0) gain = Math.floor(gain * 0.6);
+          state.money += gain;
+          state.environment += state.upgrades.soil ? rand(10, 18) : rand(6, 13);
+          state.workersHealth += state.upgrades.gear ? rand(6, 12) : rand(4, 9);
+          state.reputation += rand(2, 8);
+          addLog("Reduced chemical intensity.");
+        }
+      },
+      { id: "banChild", text: "Enforce total ban on child labor + safer adult hours",
+        fn: () => {
+          let gain = rand(4000, 11000);
+          state.money += gain - rand(2500, 5500);
+          state.childLabor -= state.upgrades.monitoring ? rand(18, 30) : rand(10, 20);
+          state.workersHealth += rand(5, 12);
+          state.reputation += rand(8, 16);
+          addLog("Strong anti-child-labor enforcement.");
+        }
+      },
+      { id: "fairtrade", text: "Push Fairtrade certification / maintain standards (costly)",
+        fn: () => {
+          if (!state.fairtrade) {
+            state.fairtrade = true;
+            state.money -= rand(9000, 16000);
+            addLog("Fairtrade certification achieved.");
+          } else {
+            state.money -= rand(2500, 5500);
+          }
+          let gain = rand(8000, 17000);
+          if (state.productionPenalty > 0) gain = Math.floor(gain * 0.65);
+          state.money += gain;
+          state.childLabor -= rand(7, 15);
+          state.workersHealth += rand(5, 11);
+          state.environment += rand(3, 8);
+          state.reputation += rand(9, 17);
+          addLog("Fairtrade standards applied this season.");
+        }
+      },
+      { id: "expand", text: "Clear more forest for expansion",
+        fn: () => {
+          let gain = rand(10000, 22000);
+          if (state.productionPenalty > 0) gain = Math.floor(gain * 0.5);
+          state.money += gain;
+          state.environment -= state.upgrades.buffers ? rand(9, 17) : rand(15, 27);
+          state.reputation -= rand(6, 14);
+          addLog("Forest cleared for expansion.");
+        }
+      },
+      { id: "recover", text: "Focus on land recovery and lower intensity",
+        fn: () => {
+          let gain = rand(2000, 7000);
+          state.money += gain;
+          state.environment += state.upgrades.soil || state.upgrades.buffers ? rand(12, 21) : rand(7, 14);
+          state.reputation += rand(5, 11);
+          addLog("Land recovery focus.");
+        }
+      },
+      { id: "cutCosts", text: "Emergency cost cutting (wages, safety, maintenance)",
+        fn: () => {
+          let gain = rand(8000, 17000);
+          state.money += gain;
+          state.workersHealth -= rand(10, 19);
+          state.childLabor += rand(7, 15);
+          state.reputation -= rand(8, 16);
+          addLog("Harsh cost cutting.");
+        }
+      }
+    ];
+
+    function checkWin() {
+      return state.season >= 12 && state.childLabor <= 15 && state.workersHealth >= 75 &&
+             state.environment >= 70 && state.reputation >= 80 && state.fairtrade;
+    }
+
+    function checkGameOver() {
+      if (checkWin()) {
+        return endGame("You transformed the plantation under extreme pressure. It is now a Certified Ethical operation.", true);
+      }
+      if (state.money <= 0) return endGame("Bankrupt. Operation seized.");
+      if (state.workersHealth <= 0) return endGame("Workforce collapsed from injury and disease.");
+      if (state.environment <= 0) return endGame("Land is dead and toxic.");
+      if (state.childLabor >= 98) return endGame("Permanently blacklisted for extreme child labor.");
+      if (state.reputation <= 0) return endGame("Reputation destroyed. No buyers left.");
+      if (state.season >= 22) return endGame("After 22 seasons you still failed to meet ethical standards.");
+      return false;
+    }
+
+    function endGame(reason, win = false) {
+      document.getElementById('game').classList.add('hidden');
+      document.getElementById('gameOver').classList.remove('hidden');
+      document.getElementById('overTitle').textContent = win ? "Certified Ethical Plantation" : "Failed";
+      document.getElementById('overTitle').style.color = win ? "var(--good)" : "var(--danger)";
+      document.getElementById('overReason').textContent = reason;
+      document.getElementById('overSeasons').textContent = `Survived ${state.season} seasons. Black marks: ${state.blackMarks}`;
+    }
+
+    function nextSeason() {
+      if (checkGameOver()) return;
+
+      state.season++;
+      selectedChoice = null;
+      document.getElementById('endSeasonBtn').disabled = true;
+
+      // Natural decay (harder without upgrades)
+      state.environment -= state.upgrades.soil || state.upgrades.buffers ? rand(1, 3) : rand(3, 6);
+      state.workersHealth -= state.upgrades.clinic || state.upgrades.housing ? rand(0, 2) : rand(2, 5);
+      if (!state.upgrades.monitoring) {
+        state.childLabor += rand(1, 4);
+      } else {
+        state.childLabor += chance(40) ? 1 : 0;
+      }
+
+      // Reduce timers
+      if (state.productionPenalty > 0) state.productionPenalty--;
+      if (state.strike > 0) state.strike--;
+
+      // Random event (heavily weighted bad)
+      let event;
+      if (chance(75)) {
+        const bads = events.filter(e => e.type === "bad");
+        event = bads[rand(0, bads.length - 1)];
+      } else {
+        event = events[rand(0, events.length - 1)];
+      }
+      event.fn();
+
+      // Punishments
+      const gotPunished = applyPunishments();
+
+      // Clamp everything
+      state.money = Math.max(0, state.money);
+      ["environment", "workersHealth", "childLabor", "reputation"].forEach(k => state[k] = clamp(state[k]));
+
+      const eClass = gotPunished ? "punish" : (event.type === "bad" ? "bad" : "good");
+      document.getElementById('seasonTitle').textContent = `Season ${state.season}`;
+      document.getElementById('story').innerHTML = `
+        <div class="event-box ${eClass}">
+          <strong>${gotPunished ? "PUNISHMENT + Event" : "Event"}:</strong> ${event.text}
+        </div>
+        <p>Select a strategy, buy upgrades if needed, then confirm the season.</p>
+      `;
+
+      // Render choices
+      const shuffled = [...choiceDefs].sort(() => Math.random() - 0.5).slice(0, 4);
+      const box = document.getElementById('choices');
+      box.innerHTML = "";
+      shuffled.forEach(c => {
+        const btn = document.createElement("button");
+        btn.className = "choice";
+        btn.textContent = c.text;
+        btn.onclick = () => {
+          selectedChoice = c;
+          document.querySelectorAll('.choice').forEach(b => b.style.borderColor = "#2f4638");
+          btn.style.borderColor = "var(--accent)";
+          document.getElementById('endSeasonBtn').disabled = false;
+        };
+        box.appendChild(btn);
+      });
+
+      renderStats();
+      renderGoal();
+      document.getElementById('upgradePanel').classList.add('hidden');
+    }
+
+    function endSeason() {
+      if (!selectedChoice) return;
+      selectedChoice.fn();
+
+      // Small market noise
+      state.money += rand(-4000, 3500);
+      state.money = Math.max(0, state.money);
+      ["environment", "workersHealth", "childLabor", "reputation"].forEach(k => state[k] = clamp(state[k]));
+
+      // Passive upgrade benefits
+      if (state.upgrades.clinic) state.workersHealth = clamp(state.workersHealth + rand(1, 3));
+      if (state.upgrades.housing) state.workersHealth = clamp(state.workersHealth + 1);
+      if (state.upgrades.training) state.reputation = clamp(state.reputation + rand(0, 2));
+      if (state.upgrades.buffers) state.environment = clamp(state.environment + rand(0, 2));
+
+      renderStats();
+      renderGoal();
+      setTimeout(nextSeason, 350);
+    }
+
+    function startGame() {
+      document.getElementById('intro').classList.add('hidden');
+      document.getElementById('game').classList.remove('hidden');
+      nextSeason();
+    }
+  </script>
+</body>
+</html>
